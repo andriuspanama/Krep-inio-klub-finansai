@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Test</title>
+<style>body{font-family:monospace;padding:20px;background:#f6f7f9}pre{background:#fff;padding:20px;border-radius:8px;border:1px solid #ddd;white-space:pre-wrap}</style>
+</head>
+<body>
+<h1>🔍 Diagnostika</h1>
+<pre id="out">Kraunama…</pre>
+<script type="module">
+const out = document.getElementById('out');
+let log = [];
+try {
+  log.push('1. Importuojam data.js…');
+  const d = await import('./js/data.js');
+  log.push('   ✅ OK. Eksportai: ' + Object.keys(d).join(', '));
+  log.push('');
+  log.push('2. Kviečiam getBudgets(2526)…');
+  const rows = await d.getBudgets('2526');
+  log.push('   ✅ Gauta: ' + rows.length + ' įrašų');
+  log.push('');
+  log.push('3. Importuojam utils.js…');
+  const u = await import('./js/utils.js');
+  log.push('   ✅ OK');
+  log.push('');
+  log.push('4. Importuojam charts.js…');
+  const c = await import('./js/charts.js');
+  log.push('   ✅ OK');
+  log.push('');
+  log.push('5. Importuojam views/overview.js…');
+  const o = await import('./js/views/overview.js');
+  log.push('   ✅ OK');
+  log.push('');
+  log.push('🎉 VISKAS GERAI!');
+} catch (e) {
+  log.push('');
+  log.push('❌ KLAIDA: ' + e.message);
+  log.push('Stack: ' + (e.stack || 'nėra'));
+}
+out.textContent = log.join('\n');
+</script>
+</body>
+</html>
