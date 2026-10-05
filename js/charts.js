@@ -41,6 +41,14 @@ function gridColor() {
   return isDark() ? 'rgba(148,163,184,.1)' : 'rgba(148,163,184,.2)';
 }
 
+function fmtShort(v) {
+  if (v == null || isNaN(v)) return '—';
+  const abs = Math.abs(v);
+  if (abs >= 1_000_000) return (v / 1_000_000).toFixed(1).replace('.', ',') + 'M€';
+  if (abs >= 1_000) return Math.round(v / 1000) + 'k€';
+  return String(Math.round(v));
+}
+
 function baseOptions() {
   return {
     responsive: true,
@@ -89,14 +97,6 @@ function baseOptions() {
       },
     },
   };
-}
-
-function fmtShort(v) {
-  if (v == null || isNaN(v)) return '—';
-  const abs = Math.abs(v);
-  if (abs >= 1_000_000) return (v / 1_000_000).toFixed(1).replace('.', ',') + 'M€';
-  if (abs >= 1_000) return Math.round(v / 1000) + 'k€';
-  return String(Math.round(v));
 }
 
 export function barChart(id, labels, values, opts = {}) {
@@ -203,47 +203,6 @@ export function doughnutChart(id, labels, values, opts = {}) {
         },
       },
       cutout: '62%',
-    },
-  };
-  instances.set(id, new Chart(el, cfg));
-  return instances.get(id);
-}
-
-export function scatterChart(id, points, opts = {}) {
-  destroyChart(id);
-  const el = document.getElementById(id);
-  if (!el) return;
-
-  const base = baseOptions();
-  const cfg = {
-    type: 'scatter',
-    data: {
-      datasets: [{
-        label: opts.label || 'Klubai',
-        data: points,
-        backgroundColor: COLORS.accent + 'aa',
-        pointRadius: 5,
-        pointHoverRadius: 8,
-      }],
-    },
-    options: {
-      ...base,
-      plugins: {
-        ...base.plugins,
-        tooltip: {
-          ...base.plugins.tooltip,
-          callbacks: {
-            label: (ctx) => {
-              const p = ctx.raw;
-              return [
-                ` ${p.club}`,
-                ` Biudžetas: ${fmtShort(p.x)}`,
-                ` Vieta: ${p.y}`,
-              ];
-            },
-          },
-        },
-      },
     },
   };
   instances.set(id, new Chart(el, cfg));
