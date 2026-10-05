@@ -4,7 +4,6 @@ import { escapeHtml } from '../utils.js';
 export async function renderTaxes(container) {
   const rows = await getTaxes();
 
-  // Kursai (statiniai iš Excel)
   const rates = [
     { period: '2005', rate: 0.81 },
     { period: '2007', rate: 0.72 },
