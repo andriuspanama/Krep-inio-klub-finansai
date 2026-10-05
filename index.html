@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="lt" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Krepšinio klubų finansai</title>
+<meta name="description" content="Europos krepšinio klubų biudžetai, atlyginimai ir finansai">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏀</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <button id="menu-toggle" class="icon-btn" aria-label="Meniu">☰</button>
+  <a href="#overview" class="brand">
+    <span class="brand-icon">🏀</span>
+    <span class="brand-text">Krepšinio finansai</span>
+  </a>
+  <div class="topbar-actions">
+    <button id="theme-toggle" class="icon-btn" aria-label="Tema">🌙</button>
+  </div>
+</header>
+
+<nav id="sidenav" class="sidenav" aria-label="Pagrindinis meniu">
+  <div class="sidenav-inner">
+    <a href="#overview" data-view="overview" class="nav-item">
+      <span class="nav-icon">📊</span><span>Apžvalga</span>
+    </a>
+    <a href="#budgets" data-view="budgets" class="nav-item">
+      <span class="nav-icon">💰</span><span>Biudžetai</span>
+    </a>
+    <a href="#compare" data-view="compare" class="nav-item">
+      <span class="nav-icon">⚖️</span><span>Palyginimas</span>
+    </a>
+    <a href="#attendance" data-view="attendance" class="nav-item">
+      <span class="nav-icon">🏟️</span><span>Lankomumas</span>
+    </a>
+    <a href="#salaries" data-view="salaries" class="nav-item">
+      <span class="nav-icon">👤</span><span>Žaidėjų algos</span>
+    </a>
+    <a href="#taxes" data-view="taxes" class="nav-item">
+      <span class="nav-icon">📋</span><span>Mokesčiai</span>
+    </a>
+  </div>
+</nav>
+
+<main id="app" class="container">
+  <section id="view" aria-live="polite">
+    <div class="loading-screen">
+      <div class="spinner"></div>
+      <p>Kraunami duomenys…</p>
+    </div>
+  </section>
+</main>
+
+<div id="modal" class="modal" hidden aria-hidden="true">
+  <div class="modal-overlay" data-close></div>
+  <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <button class="modal-close icon-btn" aria-label="Uždaryti" data-close>✕</button>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<footer class="footer">
+  <p>Duomenys: Basketball.xlsx · Svetainė: GitHub Pages</p>
+  <p class="muted">Paskutinis atnaujinimas: <span id="build-date">—</span></p>
+</footer>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
