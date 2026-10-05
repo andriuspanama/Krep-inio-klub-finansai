@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Excel → JSON generatorius</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f6f7f9;
+    color: #0f172a;
+    margin: 0;
+    padding: 20px;
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+  .wrap {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 1.5rem;
+    margin: 0 0 8px;
+    letter-spacing: -.02em;
+  }
+  .sub {
+    color: #64748b;
+    margin: 0 0 24px;
+    font-size: .9rem;
+  }
+  .card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 2px rgba(15,23,42,.04);
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    padding: 14px 22px;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    width: 100%;
+    transition: background .15s;
+    text-decoration: none;
+  }
+  .btn:hover { background: #1d4ed8; }
+  .btn:disabled {
+    background: #cbd5e1;
+    cursor: not-allowed;
+  }
+  .btn.success {
+    background: #059669;
+  }
+  .btn.success:hover { background: #047857; }
+  .file-input {
+    display: none;
+  }
+  .status {
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: .9rem;
+    margin-top: 16px;
+    display: none;
+  }
+  .status.info {
+    display: block;
+    background: #dbeafe;
+    color: #1e40af;
+  }
+  .status.success {
+    display: block;
+    background: #d1fae5;
+    color: #065f46;
+  }
+  .status.error {
+    display: block;
+    background: #fee2e2;
+    color: #991b1b;
+  }
+  .results {
+    display: none;
+  }
+  .results.show { display: block; }
+  .result-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: #f9fafb;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    gap: 10px;
+  }
+  .result-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .result-name {
+    font-weight: 600;
+    font-size: .92rem;
+    word-break: break-all;
+  }
+  .result-meta {
+    color: #64748b;
+    font-size: .78rem;
+    margin-top: 2px;
+  }
+  .result-btn {
+    background: #059669;
+    color: #fff;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: .85rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    font-family: inherit;
+  }
+  .result-btn:hover { background: #047857; }
+  .log {
+    background: #0f172a;
+    color: #e6edf6;
+    padding: 14px;
+    border-radius: 8px;
+    font-family: ui-monospace, monospace;
+    font-size: .78rem;
+    line-height: 1.6;
+    margin-top: 16px;
+    max-height: 240px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    display: none;
+  }
+  .log.show { display: block; }
+  .log-line { margin: 0; }
+  .log-line.ok { color: #34d399; }
+  .log-line.err { color: #f87171; }
+  .log-line.warn { color: #fbbf24; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>📊 Excel → JSON generatorius</h1>
+  <p class="sub">Nuskaito Basketball.xlsx ir sugeneruoja 5 JSON failus svetainei.</p>
+
+  <div class="card">
+    <input type="file" id="file-input" class="file-input" accept=".xlsx,.xls">
+    <button class="btn" id="pick-btn">📁 Pasirinkti Basketball.xlsx</button>
+    <div class="status" id="status"></div>
+  </div>
+
+  <div class="card results" id="results">
+    <h2 style="margin:0 0 14px;font-size:1.05rem">✅ Sugeneruoti failai</h2>
+    <div id="result-list"></div>
+    <button class="btn success" id="download-all" style="margin-top:14px">
+      ⬇️ Atsisiųsti visus (5 failus)
+    </button>
+  </div>
+
+  <div class="log" id="log"></div>
+
+</div>
+
+<script>
+// ============================================================
+// Pagalbinės funkcijos
+// ============================================================
+const NULL_TOKENS = new Set([
+  '', '-', 'n/a', 'na', 'none', 'null',
+  '#div/0!', '#value!', '#n/a', '#ref!', '#name?', '-%'
+]);
+
+function clean(v) {
+  if (v === null || v === undefined) return null;
+  if (typeof v === 'number') {
+    if (isNaN(v)) return null;
+    return v;
+  }
+  const s = String(v).trim();
+  if (NULL_TOKENS.has(s.toLowerCase())) return null;
+  if (s.startsWith('=')) return null;
+  const s2 = s.replace(/,/g, '').replace(/€/g, '').replace(/eur/gi, '').replace(/%/g, '').trim();
+  const n = parseFloat(s2);
+  return isNaN(n) ? null : n;
+}
+
+function cleanStr(v) {
+  if (v === null || v === undefined) return null;
+  const s = String(v).trim();
+  if (NULL_TOKENS.has(s.toLowerCase())) return null;
+  return s;
+}
+
+function collectSources(row, startIdx) {
+  const out = [];
+  for (let i = startIdx; i < row.length; i++) {
+    const v = row[i];
+    if (v === null || v === undefined) continue;
+    const s = String(v).trim();
+    if (s.startsWith('http')) out.push(s);
+  }
+  return out;
+}
+
+function collectNote(row, startIdx) {
+  for (let i = startIdx; i < row.length; i++) {
+    const v = row[i];
+    if (v === null || v === undefined) continue;
+    const s = String(v).trim();
+    if (!s || s.startsWith('http') || s.startsWith('=')) continue;
+    if (NULL_TOKENS.has(s.toLowerCase())) continue;
+    return s;
+  }
+  return null;
+}
+
+// ============================================================
+// AOA → objektų masyvas (naudojame sheet_to_json su header:1)
+// ============================================================
+function getRows(sheet) {
+  return XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null, blankrows: true });
+}
+
+// ============================================================
+// Biudžetų lapo parsavimas
+// ============================================================
+function findLeagueTitle(rows, headerRow) {
+  for (let r = headerRow - 1; r >= Math.max(0, headerRow - 5); r--) {
+    const row = rows[r];
+    if (!row) continue;
+    for (let c = 0; c < Math.min(4, row.length); c++) {
+      const v = row[c];
+      if (v && typeof v === 'string' && v.length > 5 && !v.startsWith('=')) {
+        return v.trim();
+      }
+    }
+  }
+  return null;
+}
+
+function parseBudgetSheet(rows, sheetSeason, log) {
+  const records = [];
+  let r = 0;
+  while (r < rows.length) {
+    const row = rows[r] || [];
+    const nation = cleanStr(row[1]); // B stulpelis
+    const club = cleanStr(row[2]);   // C stulpelis
+
+    if (nation === 'Nation' && club === 'Club') {
+      const headerRow = r;
+      const leagueTitle = findLeagueTitle(rows, headerRow);
+      if (!leagueTitle) {
+        r++;
+        continue;
+      }
+
+      log(`  Lyga: ${leagueTitle}`, 'ok');
+      let rr = headerRow + 1;
+
+      while (rr < rows.length) {
+        const row2 = rows[rr] || [];
+        const nation2 = cleanStr(row2[1]);
+        const club2 = cleanStr(row2[2]);
+
+        if (!nation2 && !club2) {
+          const next1 = rows[rr + 1] || [];
+          const next2 = rows[rr + 2] || [];
+          if (!cleanStr(next1[1]) && !cleanStr(next1[2]) &&
+              !cleanStr(next2[1]) && !cleanStr(next2[2])) {
+            break;
+          }
+          rr++;
+          continue;
+        }
+
+        if (nation2 && nation2.toLowerCase().startsWith('vidurk')) { rr++; continue; }
+        if (club2 && club2.toLowerCase().startsWith('league average')) { rr++; continue; }
+        if (nation2 && nation2.toLowerCase().startsWith('league')) { rr++; continue; }
+
+        const total = clean(row2[3]);
+        const salary = clean(row2[4]);
+
+        let pct = clean(row2[5]);
+        if (pct !== null && pct > 5) pct = pct / 100;
+        if (pct === null && total && salary && total > 0) pct = salary / total;
+
+        let change = clean(row2[6]);
+        if (change !== null && Math.abs(change) > 5) change = change / 100;
+
+        const place = clean(row2[7]);
+        const europe = cleanStr(row2[8]);
+
+        const sources = collectSources(row2, 9);
+        const note = collectNote(row2, 9);
+
+        records.push({
+          nation: nation2,
+          club: club2,
+          season: sheetSeason,
+          league: leagueTitle,
+          total_budget: total,
+          salary_budget: salary,
+          salary_pct: pct,
+          budget_change: change,
+          league_position: place,
+          europe: europe,
+          sources: sources,
+          note: note,
+        });
+        rr++;
+      }
+      r = rr;
+      continue;
+    }
+    r++;
+  }
+  return records;
+}
+
+// ============================================================
+// Lankomumo lapo parsavimas
+// ============================================================
+function parseAttendance(rows, log) {
+  const records = [];
+  let r = 0;
+  let currentLeague = null;
+
+  while (r < rows.length) {
+    const row = rows[r] || [];
+    const b = row[1];
+    if (b && typeof b === 'string' &&
+        (b.toLowerCase().includes('lyga') || b.toLowerCase().includes('league'))) {
+      currentLeague = b.trim();
+      r++;
+      continue;
+    }
+
+    if (cleanStr(row[1]) === 'Klubas') {
+      const headerRow = r;
+      log(`  Lankomumas: ${currentLeague || 'nežinoma'}`, 'ok');
+      let rr = headerRow + 1;
+
+      while (rr < rows.length) {
+        const row2 = rows[rr] || [];
+        const club = cleanStr(row2[1]);
+        if (!club) {
+          const next1 = rows[rr + 1] || [];
+          if (!cleanStr(next1[1])) break;
+          rr++;
+          continue;
+        }
+        if (club.toLowerCase().startsWith('vidurk')) { rr++; continue; }
+
+        const avg = clean(row2[2]);
+        const capRaw = row2[3];
+        const place = clean(row2[5]);
+
+        let capPrimary = null, capSecondary = null, capDual = false;
+        if (capRaw !== null && capRaw !== undefined) {
+          const s = String(capRaw).trim();
+          if (s.includes('/')) {
+            const parts = s.split('/').map(x => x.trim()).filter(Boolean);
+            const nums = [];
+            for (const p of parts) {
+              const n = parseFloat(p.replace(/\s/g, ''));
+              if (!isNaN(n)) nums.push(Math.round(n));
+            }
+            if (nums.length) {
+              capPrimary = Math.min(...nums);
+              capSecondary = Math.max(...nums);
+              capDual = true;
+            }
+          } else {
+            const n = parseFloat(s.replace(/\s/g, ''));
+            if (!isNaN(n)) capPrimary = Math.round(n);
+          }
+        }
+
+        let fillPct = null;
+        if (avg !== null && capPrimary && capPrimary > 0) {
+          fillPct = avg / capPrimary;
+        }
+
+        records.push({
+          league: currentLeague,
+          club: club,
+          avg_attendance: avg,
+          capacity_primary: capPrimary,
+          capacity_secondary: capSecondary,
+          capacity_dual: capDual,
+          fill_pct: fillPct,
+          league_position: place,
+        });
+        rr++;
+      }
+      r = rr;
+      continue;
+    }
+    r++;
+  }
+  return records;
+}
+
+// ============================================================
+// Žaidėjų algų lapo parsavimas
+// ============================================================
+function parseSalaries(rows, log) {
+  const records = [];
+  let headerRow = null;
+  for (let r = 0; r < Math.min(rows.length, 30); r++) {
+    const row = rows[r] || [];
+    const vals = row.slice(0, 12).map(v => String(v ?? '').trim());
+    if (vals.includes('Name') && vals.includes('Team')) {
+      headerRow = r;
+      break;
+    }
+  }
+  if (headerRow === null) {
+    log('  ⚠️ Nerastas Player Salaries header', 'warn');
+    return records;
+  }
+
+  log(`  Algos: header rasta ${headerRow + 1} eilutėje`, 'ok');
+
+  for (let r = headerRow + 1; r < rows.length; r++) {
+    const row = rows[r] || [];
+    const name = cleanStr(row[1]);
+    if (!name) continue;
+
+    const role = cleanStr(row[0]);
+    const country = cleanStr(row[2]);
+    const team = cleanStr(row[3]);
+    const season = cleanStr(row[4]);
+    const contract = clean(row[5]);
+    const length = cleanStr(row[6]);
+    const monthly = clean(row[7]);
+
+    const sources = [];
+    for (let c = 8; c < 11; c++) {
+      const v = row[c];
+      if (v && String(v).trim().startsWith('http')) {
+        sources.push(String(v).trim());
+      }
+    }
+
+    let months = null;
+    if (length) {
+      const low = length.toLowerCase();
+      if (low.includes('full')) months = 10;
+      else {
+        const m = low.match(/(\d+(?:[.,]\d+)?)/);
+        if (m) months = parseFloat(m[1].replace(',', '.'));
+      }
+    }
+
+    let monthlyFinal = monthly;
+    if (monthlyFinal === null && contract && months && months > 0) {
+      monthlyFinal = contract / months;
+    }
+
+    records.push({
+      role: role,
+      name: name,
+      country: country,
+      team: team,
+      season: season,
+      contract_value: contract,
+      contract_length: length,
+      contract_months: months,
+      monthly_salary: monthlyFinal,
+      sources: sources,
+    });
+  }
+  return records;
+}
+
+// ============================================================
+// Mokesčių lapo parsavimas
+// ============================================================
+function parseTaxes(rows, log) {
+  const records = [];
+  for (let r = 0; r < rows.length; r++) {
+    const row = rows[r] || [];
+    const country = cleanStr(row[1]);
+    if (!country) continue;
+    const season = cleanStr(row[2]);
+    const desc = cleanStr(row[3]);
+    const src = cleanStr(row[4]);
+    if (!desc) continue;
+    records.push({
+      country: country,
+      season: season,
+      description: desc,
+      source: src,
+    });
+  }
+  return records;
+}
+
+// ============================================================
+// Log sistema
+// ============================================================
+const logEl = document.getElementById('log');
+function log(msg, cls = '') {
+  logEl.classList.add('show');
+  const line = document.createElement('div');
+  line.className = 'log-line ' + cls;
+  line.textContent = msg;
+  logEl.appendChild(line);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+// ============================================================
+// Status
+// ============================================================
+const statusEl = document.getElementById('status');
+function setStatus(msg, type = 'info') {
+  statusEl.className = 'status ' + type;
+  statusEl.textContent = msg;
+}
+
+// ============================================================
+// Paleidimas
+// ============================================================
+const fileInput = document.getElementById('file-input');
+const pickBtn = document.getElementById('pick-btn');
+const resultsEl = document.getElementById('results');
+const resultList = document.getElementById('result-list');
+const downloadAllBtn = document.getElementById('download-all');
+
+let generatedFiles = {};
+
+pickBtn.addEventListener('click', () => fileInput.click());
+
+fileInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  logEl.innerHTML = '';
+  resultsEl.classList.remove('show');
+  generatedFiles = {};
+
+  setStatus(`Skaitoma ${file.name}…`, 'info');
+  log(`📁 Failas: ${file.name}`, 'ok');
+
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    log(`✓ Nuskaityta (${Math.round(file.size / 1024)} KB)`, 'ok');
+
+    const wb = XLSX.read(arrayBuffer, { type: 'array' });
+    log(`📑 Lapai: ${wb.SheetNames.join(', ')}`, 'ok');
+    log('');
+
+    // --- Biudžetai 25/26 ---
+    if (wb.SheetNames.includes('Budgets 2526')) {
+      log('🔄 Apdorojamas Budgets 2526…');
+      const rows = getRows(wb.Sheets['Budgets 2526']);
+      const data = parseBudgetSheet(rows, '25/26', log);
+      generatedFiles['budgets_2526.json'] = data;
+      log(`  ✓ Iš viso: ${data.length} įrašų`, 'ok');
+      log('');
+    }
+
+    // --- Biudžetai 26/27 ---
+    if (wb.SheetNames.includes('Budgets 2627')) {
+      log('🔄 Apdorojamas Budgets 2627…');
+      const rows = getRows(wb.Sheets['Budgets 2627']);
+      const data = parseBudgetSheet(rows, '26/27', log);
+      generatedFiles['budgets_2627.json'] = data;
+      log(`  ✓ Iš viso: ${data.length} įrašų`, 'ok');
+      log('');
+    }
+
+    // --- Lankomumas ---
+    if (wb.SheetNames.includes('Attendance')) {
+      log('🔄 Apdorojamas Attendance…');
+      const rows = getRows(wb.Sheets['Attendance']);
+      const data = parseAttendance(rows, log);
+      generatedFiles['attendance.json'] = data;
+      log(`  ✓ Iš viso: ${data.length} įrašų`, 'ok');
+      log('');
+    }
+
+    // --- Atlyginimai ---
+    if (wb.SheetNames.includes('Player Salaries')) {
+      log('🔄 Apdorojamas Player Salaries…');
+      const rows = getRows(wb.Sheets['Player Salaries']);
+      const data = parseSalaries(rows, log);
+      generatedFiles['salaries.json'] = data;
+      log(`  ✓ Iš viso: ${data.length} įrašų`, 'ok');
+      log('');
+    }
+
+    // --- Mokesčiai ---
+    if (wb.SheetNames.includes('Taxes')) {
+      log('🔄 Apdorojamas Taxes…');
+      const rows = getRows(wb.Sheets['Taxes']);
+      const data = parseTaxes(rows, log);
+      generatedFiles['taxes.json'] = data;
+      log(`  ✓ Iš viso: ${data.length} įrašų`, 'ok');
+      log('');
+    }
+
+    log('✅ VISKAS PARUOŠTA!', 'ok');
+    setStatus('✅ Sėkmė! Atsisiųsk failus žemiau.', 'success');
+
+    // Rodyti rezultatus
+    resultList.innerHTML = '';
+    for (const [name, data] of Object.entries(generatedFiles)) {
+      const json = JSON.stringify(data, null, 2);
+      const sizeKB = Math.round(json.length / 1024);
+      const item = document.createElement('div');
+      item.className = 'result-item';
+      item.innerHTML = `
+        <div class="result-info">
+          <div class="result-name">${name}</div>
+          <div class="result-meta">${data.length} įrašų · ${sizeKB} KB</div>
+        </div>
+        <button class="result-btn" data-file="${name}">⬇️ Atsisiųsti</button>
+      `;
+      resultList.appendChild(item);
+    }
+
+    resultList.querySelectorAll('.result-btn').forEach(btn => {
+      btn.addEventListener('click', () => downloadFile(btn.dataset.file));
+    });
+
+    resultsEl.classList.add('show');
+    resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  } catch (err) {
+    console.error(err);
+    log('❌ Klaida: ' + err.message, 'err');
+    setStatus('❌ Klaida: ' + err.message, 'error');
+  }
+});
+
+function downloadFile(name) {
+  const data = generatedFiles[name];
+  if (!data) return;
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+downloadAllBtn.addEventListener('click', () => {
+  const names = Object.keys(generatedFiles);
+  let i = 0;
+  function next() {
+    if (i >= names.length) return;
+    downloadFile(names[i]);
+    i++;
+    setTimeout(next, 500);
+  }
+  next();
+});
+</script>
+
+</body>
+</html>
