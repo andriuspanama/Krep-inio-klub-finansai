@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Krepšinio klubų finansai</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600&display=swap">
+<style>
+:root{--bg:#f4f6f8;--card:#fff;--ink:#14213d;--mute:#5d6b7e;--line:#dde3ea;--a:#e08a1e;--b:#1f7a8c;--pos:#1d7a46;--neg:#b5382f;--hd:'Barlow Condensed','Arial Narrow',sans-serif;--tx:'Source Sans 3',system-ui,sans-serif}
+@media(prefers-color-scheme:dark){:root:not([data-t=light]){--bg:#0f1722;--card:#17212f;--ink:#e8edf3;--mute:#93a1b4;--line:#2a3648;--a:#f0a43c;--b:#4fb0c4;--pos:#5fcf8f;--neg:#ff7d72}}
+:root[data-t=dark]{--bg:#0f1722;--card:#17212f;--ink:#e8edf3;--mute:#93a1b4;--line:#2a3648;--a:#f0a43c;--b:#4fb0c4;--pos:#5fcf8f;--neg:#ff7d72}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 var(--tx)}
+header{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:baseline;padding:18px 20px 0;max-width:1200px;margin:auto}
+h1{font:700 34px/1 var(--hd);margin:0;letter-spacing:.01em}
+#st{color:var(--mute);font-size:14px;margin-left:auto}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--b);outline-offset:2px}
+.ic{background:none;border:1px solid var(--line);border-radius:6px;padding:2px 8px;margin-left:8px}
+nav{display:flex;gap:4px;padding:14px 20px 0;max-width:1200px;margin:auto;overflow-x:auto;border-bottom:1px solid var(--line)}
+nav button{background:none;border:0;border-bottom:3px solid transparent;font:700 20px var(--hd);padding:6px 12px;color:var(--mute);white-space:nowrap}
+nav button[aria-selected=true]{color:var(--ink);border-color:var(--a)}
+main{max-width:1200px;margin:auto;padding:16px 20px 60px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.chip{border:1px solid var(--line);background:var(--card);border-radius:99px;padding:3px 12px;font-size:14px}
+.chip[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+input[type=search]{font:inherit;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 10px;min-width:200px;margin-left:auto}
+.sum{color:var(--mute);font-size:14px;margin:0 0 10px}
+.tw{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:8px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font:700 16px var(--hd);color:var(--mute);cursor:pointer;user-select:none;position:sticky;top:0;background:var(--card)}
+th.l,td.l{text-align:left}
+th[aria-sort]{color:var(--ink)}
+td.l{position:sticky;left:0;background:var(--card)}
+td small{display:block;color:var(--mute);font-size:12px;line-height:1.1}
+tr:last-child td{border-bottom:0}
+.sh{display:inline-flex;align-items:center;gap:8px}
+.sh i{display:inline-block;width:70px;height:8px;background:var(--b);border-radius:2px;overflow:hidden;opacity:.9}
+.sh i b{display:block;height:100%;background:var(--a)}
+.pos{color:var(--pos)}.neg{color:var(--neg)}.na{color:var(--mute)}
+td a{margin-right:6px;color:var(--b)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+.card h3{font:700 22px var(--hd);margin:0 0 6px}.card h3 span{color:var(--mute);font-size:16px;margin-left:6px}
+.card p{margin:0 0 8px;font-size:15px}
+.msg{background:var(--card);border:1px solid var(--neg);border-radius:8px;padding:16px;line-height:1.6}
+tr.c,tr.pc{cursor:pointer}tr.c:hover td,tr.pc:hover td{background:color-mix(in srgb,var(--a) 12%,var(--card))}
+.cl{display:flex;align-items:center}.lw{display:inline-grid;margin-right:10px;flex:none}.lw>*{grid-area:1/1;margin:0}
+.lg{width:30px;height:30px;border-radius:50%;object-fit:contain;background:#fff}.in{display:inline-flex;align-items:center;justify-content:center;color:#fff;font:700 12px var(--hd)}
+#md{position:fixed;inset:0;background:#000a;display:none;align-items:flex-end;justify-content:center;z-index:9}#md.o{display:flex}
+.sheet{background:var(--bg);width:min(900px,100%);max-height:92vh;overflow:auto;border-radius:14px 14px 0 0;padding:18px 20px 28px}
+@media(min-width:800px){#md{align-items:center}.sheet{border-radius:14px}}
+.kp{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:12px 0}
+.kp div{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 12px}.kp small{display:block;color:var(--mute);font-size:12px}.kp b{font:700 24px var(--hd)}
+h2,h3{font-family:var(--hd);margin:8px 0 4px}h2{font-size:30px;margin:0}.top{display:flex;gap:8px;margin-bottom:10px}.top button{margin-left:auto}
+.top button,.lk{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:4px 12px;color:var(--ink);text-decoration:none;font-size:14px}
+iframe{width:100%;height:calc(100vh - 150px);min-height:620px;border:1px solid var(--line);border-radius:8px;background:#fff}
+</style>
+</head>
+<body>
+<header><h1>Krepšinio klubų finansai</h1><span id="st">Kraunama…</span></header>
+<nav role="tablist" id="tabs"></nav>
+<main id="out"></main>
+<div id="md" aria-modal="true" role="dialog"><div class="sheet" id="sh"></div></div>
+<script>
+// ---- Nustatymai: Google lentelės ID (turi būti tikra Google Sheets lentelė, ne .xlsx) ----
+const SHEET_ID="1cWx_skBNVz6XwtdFsHNX5Jhd2TwRLFiY";
+// Kiekvienam lapui – galimi pavadinimai (su „/" ir be). Pirmas tinkamas naudojamas.
+const SHEETS={b27:["Budgets 26/27","Budgets 2627"],b26:["Budgets 25/26","Budgets 2526"],w26:["World 25/26","World 2526"],att:["Attendance"],sal:["Player Salaries"]};
+const NAT={France:"Prancūzija",Germany:"Vokietija",Spain:"Ispanija",Italy:"Italija",Lithuania:"Lietuva",Latvia:"Latvija",Finland:"Suomija",Greece:"Graikija",Israel:"Izraelis"};
+const nf=new Intl.NumberFormat("lt-LT",{maximumFractionDigits:0});
+const eur=n=>n==null?"–":nf.format(n)+" €";
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const norm=s=>String(s).toLowerCase().normalize("NFD").replace(/[^a-z0-9]/g,"");
+const nat=n=>NAT[n]||n;
+const num=v=>{if(v==null)return null;const s=String(v).replace(/[\s\u00a0€$%]/g,"").replace(/,/g,"");if(!/^-?\d/.test(s))return null;const n=parseFloat(s);return isNaN(n)?null:n};
+const txt=v=>{const s=String(v??"").trim();return(s===""||s==="-"||s[0]==="#")?"":s};
+function csv(t){const R=[];let r=[],c="",q=0;for(let i=0;i<t.length;i++){const h=t[i];
+ if(q){if(h=='"'){if(t[i+1]=='"'){c+='"';i++}else q=0}else c+=h}
+ else if(h=='"')q=1;else if(h==","){r.push(c);c=""}else if(h=="\n"){r.push(c);R.push(r);r=[];c=""}else if(h!="\r")c+=h}
+ if(c||r.length){r.push(c);R.push(r)}return R}
+let DEF;
+async function raw(n){
+ const res=await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&headers=0&sheet=${encodeURIComponent(n)}`);
+ const t=await res.text();
+ if(!res.ok||/^\s*</.test(t))throw new Error(`Lapas „${n}" neatsidaro (HTTP ${res.status})`);
+ return t}
+// Jei lapo pavadinimas neegzistuoja, Google tyliai grąžina pirmą lapą – tokį atsakymą atmetame
+async function load(names,first){
+ for(const n of names){const t=await raw(n);if(first||t!==DEF)return csv(t)}
+ throw new Error(`Lapas „${names[0]}" nerastas – patikrinkite jo pavadinimą lentelėje`)}
+// Suranda lenteles, kurių antraštės eilutė prasideda reikšme hdr antrame stulpelyje
+function blocks(rows,hdr){const out=[];let title="";
+ for(let i=0;i<rows.length;i++){const a=(rows[i][1]||"").trim();
+  if(a===hdr){const h=rows[i].map(x=>x.trim()),d=[];let j=i+1;
+   while(j<rows.length){const b=(rows[j][1]||"").trim();if(!b||b===hdr||/^Vidurkis/.test(b))break;d.push(rows[j]);j++}
+   out.push({title,h,d});i=j-1}
+  else if(a)title=a}
+ return out}
+const ix=(h,re)=>h.findIndex(x=>re.test(x));
+function budgets(rows,season,world){const o=[];
+ for(const b of blocks(rows,"Nation")){/* Google CSV „pameta" antraštes skaitinių stulpelių viršuje, todėl stulpeliai imami pagal vietą: B šalis, C klubas, D biudžetas, E algos, H vieta, I Europa, J+ šaltiniai */
+  const h=b.h,c={n:1,club:2,t:3,s:4,p:7,e:8};
+  const src=[9,10,11,12,13];
+  for(const r of b.d){if(!txt(r[c.club]))continue;
+   o.push({season,nation:nat(r[1].trim()),club:r[c.club].trim(),total:num(r[c.t]),sal:num(r[c.s]),place:num(r[c.p]),eu:txt(r[c.e]),src:src.map(i=>(r[i]||"").trim()).filter(u=>/^https?:/.test(u))})}}
+ return o}
+function attendance(rows){const o=[];
+ for(const b of blocks(rows,"Klubas")){const nation=/^Pranc/.test(b.title)?"Prancūzija":/^Vokiet/.test(b.title)?"Vokietija":/^Ispan/.test(b.title)?"Ispanija":/^Ital/.test(b.title)?"Italija":b.title.replace(/\s*\(.*/,"").replace(/ lyga$/,"");
+  for(const r of b.d){const nums=String(r[3]).split("/").map(num).filter(x=>x!=null),avg=num(r[2]),cap=nums.length?nums[nums.length-1]:null;
+   o.push({nation,club:r[1].trim(),avg,capTxt:txt(r[3]),cap,multi:nums.length>1,fill:avg!=null&&cap?avg/cap:null,place:num(r[5])})}}
+ return o}
+function salaries(rows){const o=[];
+ for(const b of blocks(rows,"Role")){const g=i=>i;
+  for(const r of b.d){if(!txt(r[2]))continue;
+   o.push({role:r[1].trim(),name:r[2].trim(),country:(r[3]||"").trim(),team:txt(r[4]),season:txt(r[5]),value:num(r[6]),len:txt(r[7]),month:num(r[8]),src:(r[9]||"").trim()})}}
+ return o}
+function taxes(rows){return rows.filter(r=>txt(r[3])&&!/^https?:/.test(r[1])).map(r=>({country:r[1].trim(),season:txt(r[2]),text:r[3].trim(),src:(r[4]||"").trim()}))}
+
+// ---- Būsena ir atvaizdavimas ----
+let LOGOS={},V=[],H=[];
+const same=(a,b)=>{a=norm(a||"");b=norm(b||"");return!!a&&!!b&&(a===b||(a.length>3&&b.includes(a))||(b.length>3&&a.includes(b)))};
+const logo=n=>{const u=LOGOS[norm(n)],i=n.split(/\s+/).slice(0,2).map(w=>w[0]).join("").toUpperCase();
+ return`<span class="lw"><span class="lg in" style="background:hsl(${[...n].reduce((a,c)=>(a*31+c.charCodeAt(0))%360,7)} 40% 38%)">${esc(i)}</span>${u?`<img class="lg" src="${esc(u)}" alt="" loading="lazy" onerror="this.remove()">`:""}</span>`};
+const kp=(l,v)=>`<div><small>${l}</small><b>${v}</b></div>`;
+const pct=n=>n==null?"–":Math.round(n*100)+"%";
+const cell=r=>`<div class="cl">${logo(r.club)}<div><b>${esc(r.club)}</b><small>${esc(r.nation)}</small></div></div>`;
+function show(html){H.push(html);draw()}
+function draw(){const m=$("md");if(!H.length){m.classList.remove("o");return}
+ $("sh").innerHTML=`<div class="top">${H.length>1?'<button id="bk" style="margin:0">← Atgal</button>':""}<button id="cl">Uždaryti ✕</button></div>`+H[H.length-1];m.classList.add("o")}
+function club(name,nation,season){
+ const m=r=>(!nation||r.nation===nation)&&same(r.club,name),b=budgetRows(season).find(m),a=season==="25/26"&&D.att.find(m);
+ const ps=D.sal.filter(p=>p.season===season&&same(p.team,name)).sort((x,y)=>(y.month||0)-(x.month||0)),nm=b?b.club:name;
+ show(`<div class="cl">${logo(nm)}<h2>${esc(nm)}</h2></div><p class="sum">${esc(b?b.nation:nation)} · sezonas ${season} · <a class="lk" target="_blank" rel="noopener" href="https://www.google.com/search?q=${encodeURIComponent("site:proballers.com "+nm+" basketball")}">Proballers ↗</a></p>`
+ +(b?`<div class="kp">${kp("Bendras biudžetas",eur(b.total))}${kp("Atlyginimų biudžetas",eur(b.sal))}${kp("Atlyginimų dalis",pct(b.share))}${b.chg==null?"":kp("Pokytis",(b.chg>=0?"+":"")+pct(b.chg))}${b.place?kp("Vieta lygoje",b.place):""}${b.eu?kp("Europa",esc(b.eu)):""}</div><p class="sum">Šaltiniai: ${links(b)}</p>`:'<p class="sum">Šiam sezonui biudžeto duomenų nėra.</p>')
+ +(a?`<h3>Lankomumas 2025/26</h3><div class="kp">${kp("Vid. žiūrovų",a.avg==null?"–":nf.format(a.avg))}${kp("Arenos talpa",a.cap==null?"–":nf.format(a.cap))}${kp("Užpildymas",pct(a.fill))}</div>`:"")
+ +`<h3>Žaidėjai ir algos (${season})</h3>`+(ps.length?`<div class="tw"><table><thead><tr><th class="l">Vardas</th><th>Rolė</th><th>Mėnesio alga</th><th>Sutarties vertė</th></tr></thead><tbody>${ps.map(p=>`<tr class="pc" data-p="${esc(p.name)}"><td class="l"><b>${esc(p.name)}</b></td><td>${esc(p.role)}</td><td>${eur(p.month)}</td><td>${eur(p.value)}</td></tr>`).join("")}</tbody></table></div><p class="sum">Spauskite žaidėją, kad matytumėte visą algų istoriją.</p>`:'<p class="sum">Šiam klubui ir sezonui žaidėjų algų lape įrašų nėra.</p>'))}
+function player(name){
+ const h=D.sal.filter(p=>norm(p.name)===norm(name)).sort((x,y)=>(x.season||"").localeCompare(y.season||"")),mx=Math.max(...h.map(p=>p.month||0),1),w=Math.max(320,h.length*64);
+ const svg=`<div class="tw" style="padding:10px"><svg viewBox="0 0 ${w} 170" width="${w}" role="img" aria-label="Mėnesio algos pokytis">${h.map((p,i)=>{const x=i*64+14,bh=p.month?p.month/mx*100:0;
+  return`<g><title>${esc(p.team)} ${esc(p.season)}</title><rect x="${x}" y="${128-bh}" width="36" height="${bh}" rx="3" fill="var(--a)"/><text x="${x+18}" y="${122-bh}" text-anchor="middle" font-size="11" fill="var(--ink)">${p.month?Math.round(p.month/1000)+"k":"–"}</text><text x="${x+18}" y="146" text-anchor="middle" font-size="11" fill="var(--mute)">${esc(p.season)}</text><text x="${x+18}" y="160" text-anchor="middle" font-size="9" fill="var(--mute)">${esc((p.team||"").slice(0,9))}</text></g>`}).join("")}</svg></div>`;
+ show(`<h2>${esc(h[0]?h[0].name:name)}</h2><p class="sum">${esc(h[0]?h[0].role+" · "+h[0].country:"")} · įrašų: ${h.length}</p><h3>Mėnesio algos pokytis (€)</h3>${svg}<h3>Algų istorija</h3><div class="tw"><table><thead><tr><th class="l">Sezonas</th><th>Komanda</th><th>Sutarties vertė</th><th>Trukmė</th><th>Mėnesio alga</th><th>Šaltinis</th></tr></thead><tbody>${h.map(p=>`<tr class="pc" data-club="${esc(p.team)}" data-season="${esc(p.season)}"><td class="l">${esc(p.season)||"–"}</td><td>${esc(p.team)||"–"}</td><td>${eur(p.value)}</td><td>${esc(p.len)||"–"}</td><td>${eur(p.month)}</td><td>${/^https?:/.test(p.src)?`<a href="${esc(p.src)}" target="_blank" rel="noopener">nuoroda</a>`:"–"}</td></tr>`).join("")}</tbody></table></div>`)}
+const D={};const S={tab:"bud",season:"26/27",nation:"",q:"",sort:{bud:["total",-1],att:["avg",-1],sal:["month",-1]}};
+const TABS=[["bud","Biudžetai"],["att","Lankomumas"],["sal","Žaidėjų algos"],["tax","Mokesčių skaičiuoklė"]];
+const money=k=>({k,v:r=>r[k],f:r=>`<span class="${r[k]==null?"na":""}">${eur(r[k])}</span>`});
+const links=r=>(r.src||[]).map((u,i)=>`<a href="${esc(u)}" target="_blank" rel="noopener" title="${esc(u)}">${i+1}</a>`).join("")||'<span class="na">–</span>';
+function budgetRows(se=S.season){
+ const prev=new Map(D.bud.filter(r=>r.season==="25/26").map(r=>[r.nation+norm(r.club),r]));
+ return D.bud.filter(r=>r.season===se).map(r=>{const p=prev.get(r.nation+norm(r.club));
+  return{...r,share:r.total&&r.sal!=null?r.sal/r.total:null,chg:se==="26/27"&&r.total&&p&&p.total?r.total/p.total-1:null}})}
+const COLS={
+ bud:[{k:"club",l:1,label:"Klubas",v:r=>r.club,f:cell},
+  {...money("total"),label:"Bendras biudžetas"},{...money("sal"),label:"Atlyginimų biudžetas"},
+  {k:"share",label:"Atlyginimų dalis",v:r=>r.share,f:r=>r.share==null?'<span class="na">–</span>':`<span class="sh">${Math.round(r.share*100)}%<i><b style="width:${Math.min(100,r.share*100)}%"></b></i></span>`},
+  {k:"chg",label:"Pokytis pagal praėjusį sezoną",v:r=>r.chg,f:r=>r.chg==null?'<span class="na">–</span>':`<span class="${r.chg>=0?"pos":"neg"}">${r.chg>=0?"+":""}${Math.round(r.chg*100)}%</span>`},
+  {k:"place",label:"Vieta lygoje",v:r=>r.place,f:r=>r.place??"–"},
+  {k:"eu",label:"Europos turnyras",v:r=>r.eu,f:r=>esc(r.eu)||"–"},
+  {k:"src",label:"Šaltiniai",nosort:1,v:r=>r.src.length||"",f:links}],
+ att:[{k:"club",l:1,label:"Klubas",v:r=>r.club,f:cell},
+  {k:"avg",label:"Vid. žiūrovų",v:r=>r.avg,f:r=>r.avg==null?"–":nf.format(r.avg)},
+  {k:"cap",label:"Arenos talpa",v:r=>r.cap,f:r=>r.cap==null?"–":nf.format(r.cap)+(r.multi?`<span title="Lape nurodytos dvi talpos (${esc(r.capTxt)}); užpildymas skaičiuotas pagal mažesnę">*</span>`:"")},
+  {k:"fill",label:"Užpildymas",v:r=>r.fill,f:r=>r.fill==null?'<span class="na">–</span>':`<span class="sh">${Math.round(r.fill*100)}%<i><b style="width:${Math.min(100,r.fill*100)}%"></b></i></span>`},
+  {k:"place",label:"Vieta lygoje",v:r=>r.place,f:r=>r.place??"–"}],
+ sal:[{k:"name",l:1,label:"Žaidėjas / treneris",v:r=>r.name,f:r=>`<b>${esc(r.name)}</b><small>${esc(r.role)}</small>`},
+  {k:"team",label:"Komanda",v:r=>r.team,f:r=>esc(r.team)||"–"},{k:"country",label:"Šalis",v:r=>r.country,f:r=>esc(r.country)},
+  {k:"season",label:"Sezonas",v:r=>r.season,f:r=>esc(r.season)||"–"},
+  {k:"value",label:"Sutarties vertė",v:r=>r.value,f:r=>eur(r.value)},{k:"len",label:"Trukmė",v:r=>r.len,f:r=>esc(r.len)||"–"},
+  {k:"month",label:"Mėnesio alga",v:r=>r.month,f:r=>eur(r.month)},
+  {k:"src",label:"Šaltinis",nosort:1,v:r=>r.src,f:r=>/^https?:/.test(r.src)?`<a href="${esc(r.src)}" target="_blank" rel="noopener">nuoroda</a>`:"–"}]};
+function sorted(rows,key,cols){const[k,d]=S.sort[key],c=cols.find(x=>x.k===k)||cols[0];
+ return[...rows].sort((a,b)=>{const x=c.v(a),y=c.v(b),nx=x==null||x==="",ny=y==null||y==="";if(nx||ny)return nx-ny;
+  return(typeof x==="string"?x.localeCompare(y,"lt"):x-y)*d})}
+function table(key,all){
+ const q=norm(S.q),nations=[...new Set(all.map(r=>r.nation||r.country))].filter(Boolean).sort();
+ let rows=all.filter(r=>(!S.nation||(r.nation||r.country)===S.nation)&&(!q||norm([r.club,r.name,r.team,r.nation,r.country].join(" ")).includes(q)));
+ const cols=COLS[key].filter(c=>rows.some(r=>{const v=c.v(r);return v!=null&&v!==""})||c.k==="club");
+ rows=sorted(rows,key,cols);
+ const[sk,sd]=S.sort[key];
+ const full=rows.filter(r=>key==="bud"?r.total!=null&&r.sal!=null:key==="att"?r.fill!=null:r.month!=null||r.value!=null).length;
+ const sh=rows.filter(r=>r.share!=null),avg=sh.length?Math.round(sh.reduce((s,r)=>s+r.share,0)/sh.length*100):null;
+ const seasons=key==="bud"?`<div class="bar">${["26/27","25/26"].map(s=>`<button class="chip" data-season="${s}" aria-pressed="${S.season===s}">Sezonas ${s}</button>`).join("")}</div>`:"";
+ const chips=`<div class="bar"><button class="chip" data-nation="" aria-pressed="${!S.nation}">Visos</button>${nations.map(n=>`<button class="chip" data-nation="${esc(n)}" aria-pressed="${S.nation===n}">${esc(n)}</button>`).join("")}<input type="search" id="q" placeholder="Ieškoti…" value="${esc(S.q)}" aria-label="Paieška"></div>`;
+ const head=cols.map(c=>`<th class="${c.l?"l":""}" ${c.nosort?"":`data-k="${c.k}" tabindex="0"`} ${sk===c.k?`aria-sort="${sd>0?"ascending":"descending"}"`:""}>${c.label}${sk===c.k?(sd>0?" ▲":" ▼"):""}</th>`).join("");
+ V=rows;const body=rows.slice(0,300).map((r,i)=>`<tr class="c" data-i="${i}">${cols.map(c=>`<td class="${c.l?"l":""}">${c.f(r)}</td>`).join("")}</tr>`).join("");
+ return`${seasons}${chips}<p class="sum">${rows.length} įrašų, iš jų pilnų duomenų: ${full}${avg!=null?` · vidutinė atlyginimų dalis: ${avg}% (iš ${sh.length})`:""}. ${rows.length>300?" Rodoma pirmos 300 eilučių – siaurinkite paieška ar filtru.":""} Tušti langeliai rodomi „–“ ir į vidurkius neįtraukiami.</p><div class="tw"><table><thead><tr>${head}</tr></thead><tbody>${body||'<tr><td class="l">Nieko nerasta</td></tr>'}</tbody></table></div>`}
+function render(){
+ $tabs.innerHTML=TABS.map(([k,l])=>`<button role="tab" data-tab="${k}" aria-selected="${S.tab===k}">${l}</button>`).join("");
+ const f=document.activeElement&&document.activeElement.id==="q";
+ out.innerHTML=S.tab==="tax"?'<iframe src="basketball_tax_calculator_2026.html" title="Mokesčių skaičiuoklė"></iframe>'
+  :table(S.tab,S.tab==="bud"?budgetRows():D[S.tab]);
+ if(f){const i=$("q");i.focus();i.setSelectionRange(i.value.length,i.value.length)}}
+const $=id=>document.getElementById(id),$tabs=$("tabs"),out=$("out");
+document.addEventListener("click",e=>{if(e.target.id==="md"){H=[];return draw()}
+ if(e.target.closest("a"))return;
+ const t=e.target.closest("#cl,#bk,tr.c,[data-p],[data-club],[data-tab],[data-nation],[data-season],th[data-k],#reload");if(!t)return;
+ if(t.id==="cl"){H=[];return draw()}if(t.id==="bk"){H.pop();return draw()}
+ if(t.matches("tr.c")){const r=V[+t.dataset.i];return S.tab==="sal"?player(r.name):club(r.club,r.nation,S.tab==="att"?"25/26":r.season)}
+ if(t.dataset.p)return player(t.dataset.p);
+ if(t.dataset.club!==undefined)return club(t.dataset.club,"",t.dataset.season);
+ if(t.dataset.tab){S.tab=t.dataset.tab;S.nation="";S.q=""}
+ else if(t.dataset.nation!==undefined)S.nation=t.dataset.nation;
+ else if(t.dataset.season)S.season=t.dataset.season;
+ else if(t.dataset.k){const s=S.sort[S.tab];S.sort[S.tab]=[t.dataset.k,s[0]===t.dataset.k?-s[1]:(t.dataset.k==="club"||t.dataset.k==="name"?1:-1)]}
+ else return start();
+ render()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){H=[];draw()}if(e.key==="Enter"&&e.target.matches("th[data-k]"))e.target.click()});
+document.addEventListener("input",e=>{if(e.target.id==="q"){S.q=e.target.value;render()}});
+async function start(){
+ $("st").textContent="Kraunama…";
+ try{
+  DEF=await raw("__nera_tokio_lapo__");
+  const[a,b,w,at,sa]=await Promise.all(Object.values(SHEETS).map((n,i)=>load(n,i===0)));
+  D.bud=[...budgets(a,"26/27"),...budgets(b,"25/26"),...budgets(w,"25/26")];D.att=attendance(at);D.sal=salaries(sa);try{LOGOS=Object.fromEntries(Object.entries(await(await fetch("logos.json")).json()).map(([k,v])=>[norm(k),v]))}catch(e){}
+  $("st").innerHTML=`Atnaujinta ${new Date().toLocaleTimeString("lt-LT",{hour:"2-digit",minute:"2-digit"})}<button class="ic" id="reload" title="Perkrauti duomenis iš lentelės">Atnaujinti</button>`;
+  render()
+ }catch(err){
+  $("st").innerHTML='<button class="ic" id="reload">Bandyti dar kartą</button>';
+  out.innerHTML=`<div class="msg"><b>Nepavyko gauti duomenų iš Google Sheets.</b><br>${esc(err.message)}<br>Patikrinkite: 1) failas turi būti išsaugotas kaip Google Sheets (<i>Failas → Išsaugoti kaip Google Sheets</i>), 2) bendrinimas: „Visi, turintys nuorodą – žiūrėtojas“, 3) kode nurodytas teisingas lentelės ID, 4) lapų pavadinimai sutampa.</div>`}}
+start();
+</script>
+</body>
+</html>
