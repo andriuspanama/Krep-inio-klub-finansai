@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Krepšinio klubų finansai</title>
+<meta name="description" content="Europos krepšinio klubų finansiniai duomenys: biudžetai, atlyginimai, lankomumas ir mokesčiai.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Sticky modern header -->
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="#" class="logo">
+        <div class="logo-icon">🏀</div>
+        <h1 id="h1">Krepšinio klubų finansai</h1>
+      </a>
+
+      <div class="header-meta">
+        <span id="st">Kraunama…</span>
+        <button class="btn-icon" id="reload" title="Perkrauti duomenis">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          <span>Atnaujinti</span>
+        </button>
+
+        <div class="lang-switch" id="lang">
+          <button data-l="lt" aria-pressed="true">LT</button>
+          <button data-l="en" aria-pressed="false">EN</button>
+        </div>
+
+        <button class="theme-toggle" id="theme-toggle" title="Keisti temą" aria-label="Keisti temą">
+          <span id="theme-icon">🌙</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Tabs -->
+  <div class="tabs-wrap">
+    <nav role="tablist" id="tabs"></nav>
+  </div>
+
+  <!-- Main content (JS fills this) -->
+  <main id="out"></main>
+
+  <!-- Modal / detail sheet -->
+  <div id="md" aria-modal="true" role="dialog">
+    <div class="sheet" id="sh"></div>
+  </div>
+
+<script>
+/* =========================================================
+   Theme toggle (new)
+   ========================================================= */
+(function initTheme() {
+  const saved = localStorage.getItem('kkf-theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const theme = saved || (prefersDark ? 'dark' : 'light');
+  document.documentElement.setAttribute('data-theme', theme);
+  updateThemeIcon(theme);
+
+  document.getElementById('theme-toggle').addEventListener('click', () => {
+    const current = document.documentElement.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('kkf-theme', next);
+    updateThemeIcon(next);
+  });
+
+  function updateThemeIcon(theme) {
+    document.getElementById('theme-icon').textContent = theme === 'dark' ? '☀️' : '🌙';
+  }
+})();
+
+/* =========================================================
+   Original application logic (adapted for new markup)
+   ========================================================= */
+// ---- Nustatymai: Google lentelės ID (turi būti tikra Google Sheets lentelė, ne .xlsx) ----
+const SHEET_ID="1cWx_skBNVz6XwtdFsHNX5Jhd2TwRLFiY";
+// Kiekvienam lapui – galimi pavadinimai (su „/" ir be). Pirmas tinkamas naudojamas.
+const SHEETS={b27:["Budgets 26/27","Budgets 2627"],b26:["Budgets 25/26","Budgets 2526"],w26:["World 25/26","World 2526"],att:["Attendance 25/26","Attendance 2526","Attendance"],sal:["Player Salaries"],hist:["Historical Budgets"]};
+const C="Australia|Australija|AU;Austria|Austrija|AT;Belgium|Belgija|BE;Bosnia and Herzegovina|Bosnija ir Hercegovina|BA;Croatia|Kroatija|HR;Czech Republic|Čekija|CZ;Denmark|Danija|DK;Estonia|Estija|EE;Finland|Suomija|FI;France|Prancūzija|FR;Germany|Vokietija|DE;Greece|Graikija|GR;Hungary|Vengrija|HU;Israel|Izraelis|IL;Italy|Italija|IT;Japan|Japonija|JP;Latvia|Latvija|LV;Lithuania|Lietuva|LT;Montenegro|Juodkalnija|ME;North Macedonia|Šiaurės Makedonija|MK;Poland|Lenkija|PL;Portugal|Portugalija|PT;Romania|Rumunija|RO;Serbia|Serbija|RS;Slovakia|Slovakija|SK;Slovenia|Slovėnija|SI;Spain|Ispanija|ES;Turkey|Turkija|TR;United Arab Emirates|Jungtiniai Arabų Emyratai|AE;United Kingdom|Jungtinė Karalystė|GB;Ukraine|Ukraina|UA;Bulgaria|Bulgarija|BG;Georgia|Gruzija|GE;Cyprus|Kipras|CY;Netherlands|Nyderlandai|NL;Switzerland|Šveicarija|CH;Sweden|Švedija|SE;Norway|Norvegija|NO;Iceland|Islandija|IS;Kosovo|Kosovas|XK;Azerbaijan|Azerbaidžanas|AZ;Ireland|Airija|IE;Albania|Albanija|AL;Russia|Rusija|RU".split(";").map(s=>s.split("|"));
+const NAT=Object.fromEntries(C.map(c=>[c[0],c[1]])),FL=Object.fromEntries(C.map(c=>[c[1],c[2]]));
+const flag=n=>FL[n]?String.fromCodePoint(...[...FL[n]].map(c=>127397+c.charCodeAt(0)))+" ":"";
+let nf=new Intl.NumberFormat("lt-LT",{maximumFractionDigits:0});
+const eur=n=>n==null?"–":nf.format(n)+" €";
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const norm=s=>String(s).toLowerCase().normalize("NFD").replace(/[^a-z0-9]/g,"");
+const nat=n=>NAT[n]||n;
+const num=v=>{if(v==null)return null;const s=String(v).replace(/[\s\u00a0€$%]/g,"").replace(/,/g,"");if(!/^-?\d/.test(s))return null;const n=parseFloat(s);return isNaN(n)?null:n};
+const txt=v=>{const s=String(v??"").trim();return(s===""||s==="-"||s[0]==="#")?"":s};
+function csv(t){const R=[];let r=[],c="",q=0;for(let i=0;i<t.length;i++){const h=t[i];
+ if(q){if(h=='"'){if(t[i+1]=='"'){c+='"';i++}else q=0}else c+=h}
+ else if(h=='"')q=1;else if(h==","){r.push(c);c=""}else if(h=="\n"){r.push(c);R.push(r);r=[];c=""}else if(h!="\r")c+=h}
+ if(c||r.length){r.push(c);R.push(r)}return R}
+let DEF;
+async function raw(n){
+ const res=await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&headers=0&sheet=${encodeURIComponent(n)}`);
+ const t=await res.text();
+ if(!res.ok||/^\s*</.test(t))throw new Error(`Lapas „${n}" neatsidaro (HTTP ${res.status})`);
+ return t}
+// Jei lapo pavadinimas neegzistuoja, Google tyliai grąžina pirmą lapą – tokį atsakymą atmetame
+async function load(names,first){
+ for(const n of names){const t=await raw(n);if(first||t!==DEF)return csv(t)}
+ throw new Error(`Lapas „${names[0]}" nerastas – patikrinkite jo pavadinimą lentelėje`)}
+// Suranda lenteles, kurių antraštės eilutė prasideda reikšme hdr antrame stulpelyje
+function blocks(rows,hdr){const out=[];let title="";
+ for(let i=0;i<rows.length;i++){const a=(rows[i][1]||"").trim();
+  if(a===hdr){const h=rows[i].map(x=>x.trim()),d=[];let j=i+1;
+   while(j<rows.length){const b=(rows[j][1]||"").trim();if(!b||b===hdr||/^Vidurkis/.test(b))break;d.push(rows[j]);j++}
+   out.push({title,h,d});i=j-1}
+  else if(a)title=a}
+ return out}
+const ix=(h,re)=>h.findIndex(x=>re.test(x));
+function budgets(rows,season,world){const o=[];
+ for(const b of blocks(rows,"Nation")){/* Google CSV „pameta" antraštes skaitinių stulpelių viršuje, todėl stulpeliai imami pagal vietą: B šalis, C klubas, D biudžetas, E algos, H vieta, I Europa, J+ šaltiniai */
+  const h=b.h,iN=1,iC=2,iB=3,iS=4,iP=7,iE=8;
+  for(const r of b.d){const club=txt(r[iC]);if(!club)continue;
+   const budget=num(r[iB]),salary=num(r[iS]);
+   o.push({club,nation:nat(txt(r[iN])),budget,salary,share:budget&&salary!=null?Math.round(salary/budget*100):null,pos:txt(r[iP]),euro:txt(r[iE]),src:r.slice(9).map(txt).filter(Boolean),season,world:!!world})}
+ }return o}
+function attendance(rows){const o=[];
+ for(const b of blocks(rows,"Nation")){
+  const h=b.h,iN=1,iC=2,iA=3,iC2=4,iS=5;
+  for(const r of b.d){const club=txt(r[iC]);if(!club)continue;
+   o.push({club,nation:nat(txt(r[iN])),avg:num(r[iA]),cap:num(r[iC2]),sold:num(r[iS])})}
+ }return o}
+function salaries(rows){const o=[];
+ const h=rows[0]||[];const iN=ix(h,/nation|šalis/i),iC=ix(h,/club|klubas/i),iP=ix(h,/player|žaidėjas/i),iS=ix(h,/salary|alga|gross/i),iN2=ix(h,/net/i),iY=ix(h,/year|sezonas/i);
+ for(let i=1;i<rows.length;i++){const r=rows[i],club=txt(r[iC]);if(!club)continue;
+  o.push({club,nation:nat(txt(r[iN])),player:txt(r[iP]),gross:num(r[iS]),net:num(r[iN2]),year:txt(r[iY])})}
+ return o}
+function dedupe(a){const m=new Map();for(const x of a){const k=norm(x.club)+(x.season||"");if(!m.has(k)||(x.budget!=null&&m.get(k).budget==null))m.set(k,x)}return[...m.values()]}
+let D={bud:[],att:[],sal:[]},LOGOS={},S={tab:"bud",season:"26/27",nation:"",q:"",sort:{bud:["budget",-1],att:["avg",-1],sal:["gross",-1]}},LANG="lt",H=[];
+const T={
+ lt:{h1:"Krepšinio klubų finansai",bud:"Biudžetai",att:"Lankomumas",sal:"Žaidėjų algos",tax:"Mokesčių skaičiuoklė",
+  all:"Visos",search:"Ieškoti…",reload:"Atnaujinti",loading:"Kraunama…",
+  club:"Klubas",budget:"Bendras biudžetas",salary:"Atlyginimų biudžetas",share:"Atlyginimų dalis",change:"Pokytis pagal praėjusį sezoną",src:"Šaltiniai",
+  avg:"Vidutinis lankomumas",cap:"Talpa",sold:"Parduoti bilietai",player:"Žaidėjas",gross:"Bruto alga",net:"Neto alga",year:"Sezonas",
+  season:"Sezonas",empty:"Nėra duomenų",sum:(n,f,a)=>`${n} įrašų, iš jų pilnų duomenų: ${f} · vidutinė atlyginimų dalis: ${a}% (iš ${f}). Tušti langeliai rodomi „–“ ir į vidurkius neįtraukiami.`},
+ en:{h1:"Basketball Club Finances",bud:"Budgets",att:"Attendance",sal:"Player Salaries",tax:"Tax Calculator",
+  all:"All",search:"Search…",reload:"Refresh",loading:"Loading…",
+  club:"Club",budget:"Total Budget",salary:"Salary Budget",share:"Salary Share",change:"Change vs previous season",src:"Sources",
+  avg:"Average Attendance",cap:"Capacity",sold:"Tickets Sold",player:"Player",gross:"Gross Salary",net:"Net Salary",year:"Season",
+  season:"Season",empty:"No data",sum:(n,f,a)=>`${n} records, of which complete: ${f} · average salary share: ${a}% (of ${f}). Empty cells shown as “–” and excluded from averages.`}
+};
+function t(k){return T[LANG][k]||T.lt[k]||k}
+function setLang(l){LANG=l;nf=new Intl.NumberFormat(l==="lt"?"lt-LT":"en-US",{maximumFractionDigits:0});
+ document.documentElement.lang=l;document.getElementById("h1").textContent=t("h1");
+ document.querySelectorAll("#lang button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.l===l?"true":"false"));
+ render()}
+function setSt(html){document.getElementById("st").innerHTML=html}
+function render(){
+ const out=document.getElementById("out");
+ // Tabs
+ const tabs=document.getElementById("tabs");
+ tabs.innerHTML=`<button role="tab" data-tab="bud" aria-selected="${S.tab==="bud"}">${t("bud")}</button>
+<button role="tab" data-tab="att" aria-selected="${S.tab==="att"}">${t("att")}</button>
+<button role="tab" data-tab="sal" aria-selected="${S.tab==="sal"}">${t("sal")}</button>
+<button role="tab" data-tab="tax" aria-selected="${S.tab==="tax"}">${t("tax")}</button>`;
+ if(S.tab==="tax"){out.innerHTML=`<iframe src="https://andriuspanama.github.io/Krep-inio-klub-finansai/basketball_tax_calculator_2026.html" title="Tax calculator"></iframe>`;return}
+ // Filters
+ const seasons=["26/27","25/26","24/25","23/24","22/23","21/22","20/21","19/20","18/19","17/18","16/17","15/16","14/15"];
+ let html=`<div class="bar">`;
+ for(const s of seasons)html+=`<button class="chip" data-season="${s}" aria-pressed="${S.season===s}">${t("season")} ${s}</button>`;
+ html+=`</div><div class="bar">`;
+ html+=`<button class="chip" data-nation="" aria-pressed="${!S.nation}">${t("all")}</button>`;
+ const nations=[...new Set(D.bud.filter(x=>x.season===S.season||S.tab!=="bud").map(x=>x.nation).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"lt"));
+ for(const n of nations)html+=`<button class="chip" data-nation="${esc(n)}" aria-pressed="${S.nation===n}">${flag(n)}${esc(n)}</button>`;
+ html+=`<input type="search" id="q" placeholder="${t("search")}" value="${esc(S.q)}"></div>`;
+ // Data
+ let rows=[];
+ if(S.tab==="bud"){
+  rows=D.bud.filter(x=>x.season===S.season&&(!S.nation||x.nation===S.nation)&&(!S.q||norm(x.club).includes(norm(S.q))||norm(x.nation).includes(norm(S.q))));
+  const [k,dir]=S.sort.bud;rows.sort((a,b)=>((a[k]??-1e15)-(b[k]??-1e15))*dir||a.club.localeCompare(b.club));
+  const full=rows.filter(x=>x.budget!=null&&x.salary!=null),avg=full.length?Math.round(full.reduce((s,x)=>s+x.share,0)/full.length):0;
+  html+=`<p class="sum">${t("sum")(rows.length,full.length,avg)}</p>`;
+  // Summary cards
+  if(rows.length){
+   const maxB=Math.max(...rows.map(x=>x.budget||0));
+   const top=rows.find(x=>x.budget===maxB);
+   html+=`<div class="summary-cards">
+     <div class="summary-card"><div class="label">Klubų skaičius</div><div class="value">${rows.length}</div></div>
+     <div class="summary-card"><div class="label">Didžiausias biudžetas</div><div class="value">${eur(maxB)}</div><div class="sub">${top?esc(top.club):""}</div></div>
+     <div class="summary-card"><div class="label">Vid. atlyginimų dalis</div><div class="value">${avg}%</div></div>
+     <div class="summary-card"><div class="label">Pilni duomenys</div><div class="value">${full.length}</div><div class="sub">iš ${rows.length}</div></div>
+   </div>`;
+  }
+  html+=`<div class="tw"><table><thead><tr>
+<th class="l" data-k="club">${t("club")}</th>
+<th data-k="budget">${t("budget")}</th>
+<th data-k="salary">${t("salary")}</th>
+<th data-k="share">${t("share")}</th>
+<th data-k="change">${t("change")}</th>
+<th>${t("src")}</th></tr></thead><tbody>`;
+  for(const x of rows){
+   const prev=D.bud.find(p=>p.season!==S.season&&norm(p.club)===norm(x.club)&&p.budget!=null);
+   let ch="–",cls="na";
+   if(x.budget!=null&&prev&&prev.budget){const p=Math.round((x.budget-prev.budget)/prev.budget*100);ch=(p>0?"+":"")+p+"%";cls=p>0?"pos":p<0?"neg":"na"}
+   const logo=LOGOS[norm(x.club)];
+   html+=`<tr class="c" data-club="${esc(x.club)}" data-season="${x.season}">
+<td class="l"><div class="cl">${logo?`<span class="lw"><img class="lg" src="${logo}" alt="" loading="lazy" onerror="this.style.display='none'"><span class="in" style="display:none"></span></span>`:`<span class="in">${esc(x.club.slice(0,2).toUpperCase())}</span>`}<span>${flag(x.nation)}${esc(x.club)}</span></div></td>
+<td>${eur(x.budget)}</td>
+<td>${eur(x.salary)}</td>
+<td>${x.share!=null?`<span class="sh">${x.share}% <i><b style="width:${x.share}%"></b></i></span>`:"–"}</td>
+<td class="${cls}">${ch}</td>
+<td>${(x.src||[]).map((s,i)=>`<a href="${esc(s)}" target="_blank" rel="noopener">${i+1}</a>`).join("")||"–"}</td></tr>`}
+  html+=`</tbody></table></div>`;
+ }else if(S.tab==="att"){
+  rows=D.att.filter(x=>(!S.nation||x.nation===S.nation)&&(!S.q||norm(x.club).includes(norm(S.q))));
+  const [k,dir]=S.sort.att;rows.sort((a,b)=>((a[k]??-1e15)-(b[k]??-1e15))*dir||a.club.localeCompare(b.club));
+  html+=`<p class="sum">${rows.length} ${t("club").toLowerCase()}</p><div class="tw"><table><thead><tr>
+<th class="l" data-k="club">${t("club")}</th><th data-k="avg">${t("avg")}</th><th data-k="cap">${t("cap")}</th><th data-k="sold">${t("sold")}</th></tr></thead><tbody>`;
+  for(const x of rows)html+=`<tr><td class="l">${flag(x.nation)}${esc(x.club)}</td><td>${x.avg!=null?nf.format(x.avg):"–"}</td><td>${x.cap!=null?nf.format(x.cap):"–"}</td><td>${x.sold!=null?nf.format(x.sold):"–"}</td></tr>`;
+  html+=`</tbody></table></div>`;
+ }else if(S.tab==="sal"){
+  rows=D.sal.filter(x=>(!S.nation||x.nation===S.nation)&&(!S.q||norm(x.club).includes(norm(S.q))||norm(x.player).includes(norm(S.q))));
+  const [k,dir]=S.sort.sal;rows.sort((a,b)=>((a[k]??-1e15)-(b[k]??-1e15))*dir||a.player.localeCompare(b.player));
+  html+=`<p class="sum">${rows.length} ${t("player").toLowerCase()}</p><div class="tw"><table><thead><tr>
+<th class="l" data-k="player">${t("player")}</th><th class="l" data-k="club">${t("club")}</th><th data-k="gross">${t("gross")}</th><th data-k="net">${t("net")}</th><th data-k="year">${t("year")}</th></tr></thead><tbody>`;
+  for(const x of rows)html+=`<tr class="pc" data-p="${esc(x.player)}"><td class="l">${esc(x.player)}</td><td class="l">${flag(x.nation)}${esc(x.club)}</td><td>${eur(x.gross)}</td><td>${eur(x.net)}</td><td>${esc(x.year||"–")}</td></tr>`;
+  html+=`</tbody></table></div>`;
+ }
+ out.innerHTML=html;
+ // Re-bind search
+ const q=document.getElementById("q");if(q)q.focus();
+}
+// Event delegation
+document.addEventListener("click",e=>{
+ const t=e.target.closest("[data-tab],[data-nation],[data-season],[data-k],[data-club],[data-p],#reload,.chip[data-l]");
+ if(!t)return;
+ if(t.id==="reload")return start();
+ if(t.dataset.l){setLang(t.dataset.l);return}
+ if(t.dataset.p)return; // player detail placeholder
+ if(t.dataset.club!==undefined)return; // club detail placeholder
+ if(t.dataset.tab){S.tab=t.dataset.tab;S.nation="";S.q=""}
+ else if(t.dataset.nation!==undefined)S.nation=t.dataset.nation||"";
+ else if(t.dataset.season)S.season=t.dataset.season;
+ else if(t.dataset.k){const s=S.sort[S.tab];S.sort[S.tab]=[t.dataset.k,s[0]===t.dataset.k?-s[1]:(t.dataset.k==="club"||t.dataset.k==="name"?1:-1)]}
+ else return;
+ render()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){H=[];document.getElementById("md").classList.remove("o")}if(e.key==="Enter"&&e.target.matches("th[data-k]"))e.target.click()});
+document.addEventListener("input",e=>{if(e.target.id==="q"){S.q=e.target.value;render()}});
+async function start(){
+ setSt(t("loading"));
+ try{
+  DEF=await raw("__nera_tokio_lapo__");
+  const[a,b,w,at,sa,hi]=await Promise.all(Object.values(SHEETS).map((n,i)=>{const q=load(n,i===0);return n[0]==="Historical Budgets"?q.catch(()=>[]):q}));
+  D.bud=dedupe([...budgets(a,"26/27"),...budgets(b,"25/26"),...budgets(w,"25/26",true),...budgets(hi,"H")]);
+  D.att=dedupe(attendance(at));D.sal=salaries(sa);
+  try{LOGOS=Object.fromEntries(Object.entries(await(await fetch("logos.json")).json()).map(([k,v])=>[norm(k),v]))}catch(e){}
+  setSt(`Atnaujinta ${new Date().toLocaleTimeString(LANG==="lt"?"lt-LT":"en-US",{hour:"2-digit",minute:"2-digit"})}`);
+  render()
+ }catch(err){
+  setSt(`<button class="btn-icon" id="reload">Bandyti dar kartą</button>`);
+  document.getElementById("out").innerHTML=`<div class="msg"><b>Nepavyko gauti duomenų iš Google Sheets.</b><br>${esc(err.message)}<br>Patikrinkite: 1) failas turi būti išsaugotas kaip Google Sheets (<i>Failas → Išsaugoti kaip Google Sheets</i>), 2) bendrinimas: „Visi, turintys nuorodą – žiūrėtojas“, 3) kode nurodytas teisingas lentelės ID, 4) lapų pavadinimai sutampa.</div>`}}
+setLang(LANG);
+start();
+</script>
+</body>
+</html>
